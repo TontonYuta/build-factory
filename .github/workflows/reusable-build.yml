@@ -1,4 +1,4 @@
-name: Ultimate Android Builder
+name: Ultimate Android Builder (Java 21 Edition)
 on:
   workflow_call:
     inputs:
@@ -10,34 +10,32 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: 1. Checkout Code
+      - name: 1. Lấy mã nguồn (Checkout)
         uses: actions/checkout@v4
 
-      - name: 2. Setup Java 17
+      - name: 2. Cài đặt Java 21 (Sửa lỗi invalid source release)
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: 3. Setup Node.js 22
+      - name: 3. Cài đặt Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
 
-      - name: 4. Cài đặt Dependencies
+      - name: 4. Cài đặt thư viện (Dependencies)
         run: |
-          # Thử dùng npm ci cho nhanh, nếu không có file lock thì dùng npm install
           if [ -f "package-lock.json" ]; then
             npm ci
           else
             npm install
           fi
 
-      - name: 5. Xử lý Build Web
+      - name: 5. Đóng gói mã Web (Build Web)
         run: |
-          # Nếu có lệnh build thì chạy, nếu không (code HTML thuần) thì tự tạo thư mục dist
           if npm run | grep -q "build"; then
             npm run build
           else
@@ -45,26 +43,24 @@ jobs:
             cp -r * dist/ 2>/dev/null || true
           fi
 
-      - name: 6. Cấu hình Capacitor (Dọn dẹp & Khởi tạo)
+      - name: 6. Dọn dẹp & Khởi tạo Capacitor
         run: |
-          # Xóa bỏ các file cấu hình cũ để tránh xung đột (Sửa lỗi .ts)
+          # Xóa sạch cấu hình cũ (.ts, .json) để tránh xung đột
           rm -f capacitor.config.ts
           rm -f capacitor.config.json
           
-          # Tự động tạo Package Name từ tên Repo
+          # Tự tạo mã định danh (Package Name) từ tên Repo
           REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr -d '-' | tr '[:upper:]' '[:lower:]')
           
-          # Khởi tạo Capacitor mới tinh
+          # Khởi tạo Capacitor với thư mục web mặc định là 'dist'
           npx cap init "${{ inputs.app_name }}" "com.tontonyuta.$REPO_NAME" --web-dir dist
           
-          # Thêm nền tảng Android nếu chưa có
           if [ ! -d "android" ]; then
             npx cap add android
           fi
 
-      - name: 7. Xử lý Icon (Tự động)
+      - name: 7. Tự động xử lý Icon (Nếu có icon.png)
         run: |
-          # Nếu bạn có file icon.png, máy sẽ tự tạo bộ icon chuẩn cho Android
           if [ -f "icon.png" ]; then
             npm install @capacitor/assets --save-dev
             npx capacitor-assets generate --android
@@ -72,13 +68,13 @@ jobs:
           
           npx cap sync android
 
-      - name: 8. Xuất file APK
+      - name: 8. Xuất file APK (Sử dụng Java 21)
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
-      - name: 9. Upload kết quả
+      - name: 9. Tải file APK lên GitHub
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.event.repository.name }}-APK
