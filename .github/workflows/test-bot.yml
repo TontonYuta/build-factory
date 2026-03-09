@@ -1,0 +1,11 @@
+name: Test Telegram Bot
+on: workflow_dispatch # Nút bấm chạy thủ công
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Test Message
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
+               -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}&text=🔔 Chào Yuta! Nếu bạn thấy tin nhắn này thì kết nối đã HOÀN HẢO."
